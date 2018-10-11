@@ -23,12 +23,16 @@ static void initialize(){
     *(meta_t*)pool = POOL_SIZE - sizeof(meta_t); // set the available space
 }
 
+static void split(){
+
+}
+
 void * my_malloc(unsigned int size){
     if(!(meta_t*)pool) initialize();
     if(!size) return NULL;
 
     meta_t * tmp = (meta_t*)pool;
-    while((byte_t)tmp < pool+POOL_SIZE){
+    while((byte_t *)tmp < pool+POOL_SIZE){
         if(*tmp >= size){
             if(*tmp > size) split();
             return data_ref(tmp);
@@ -36,10 +40,12 @@ void * my_malloc(unsigned int size){
         if(*tmp > 0) tmp += *tmp;
         else tmp += -(*tmp);
     }
+
+    return NULL;
 }
 
 int my_free(void * data_ref){
-
+    return 0;
 }
 
 void print(){
