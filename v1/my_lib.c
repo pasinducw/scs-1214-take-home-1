@@ -51,7 +51,7 @@ static void combine_next(memory_slot * ptr){
 
 void * my_malloc(unsigned int size) {
     if(!root) initialize(); // initialized structure on first call
-    if(!size) return -1; // invalid size (0)
+    if(!size) return NULL; // invalid size (0)
     
     ptr = root;
     while(ptr!=NULL){ // loop through the meta blocks and find a fitting free block

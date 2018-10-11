@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "my_lib.h"
+#include "v1/my_lib.h"
 
 int main(){
     int N;
