@@ -7,7 +7,7 @@ HEADERS=$(SRC_DIR)/$(VERSION)/my_lib.h
 SOURCES=$(SRC_DIR)/main.c $(SRC_DIR)/$(VERSION)/my_lib.c
 
 application: $(SOURCES)
-	$(CC) -o $@ $(SOURCES)
+	$(CC) -g -o $@ $(SOURCES)
 
 .PHONY: clean
 

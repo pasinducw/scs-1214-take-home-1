@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "v1/my_lib.h"
+#include "v2/my_lib.h"
 
 int main(){
     int N;
@@ -12,15 +12,16 @@ int main(){
         points[i] = (int *)my_malloc(8);
         if(!points[i]) {
             printf("Out of memory\n");
+            print();
             exit(0);
         }
         *points[i] = i*i;
         freed[i] = 0;
-        printf("%p -> %d\n", points[i], *points[i]);
+        printf("\t\tResponse: %p -> %d\n", points[i], *points[i]);
     }
 
     print();
-
+/*
     int freeCount = 0;
     while(freeCount<N){
         int index = rand() % N;
@@ -30,5 +31,6 @@ int main(){
         freed[index] = 1;
         freeCount++;
     }
+*/
     return 0;
 }
