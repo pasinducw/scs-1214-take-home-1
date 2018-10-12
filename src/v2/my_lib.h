@@ -1,10 +1,10 @@
 #ifndef MY_LIB
 #define MY_LIB
 
-void * my_malloc(unsigned int);
+void * my_malloc(const unsigned int);
 
-int my_free(void *);
+int my_free(const void *);
 
-void print();
+void print_heap(const unsigned int);
 
 #endif
