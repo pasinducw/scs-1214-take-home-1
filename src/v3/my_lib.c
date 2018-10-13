@@ -20,7 +20,7 @@ typedef struct meta_t {
 #define true 1
 #define false 0
 
-#define POOL_SIZE 1000 // additional meta space left at the end of pool
+#define POOL_SIZE 25000 // additional meta space left at the end of pool
 
 #define get_data_ref(v) ((void*)((void*)v + sizeof(meta_t))) // get data address from meta address
 #define get_meta_ref(v) ((meta_t*)((void*)v - sizeof(meta_t))) // get meta address from data address
@@ -29,17 +29,17 @@ typedef struct meta_t {
 // Data Block:      [initialized byte] [ref to root of binary tree meta_t *] ... [meta_t][data] ...
 static byte_t pool[POOL_SIZE]; 
 
-static void print_bst_node(meta_t **ref, int tabs){
-    if(!*ref) return;
+static void print_bst_node(meta_t *ref, int tabs){
+    if(!ref) return;
     rep(t, tabs) printf("\t");
-    printf("%p (size: %u, free: %d)\n", *ref, (*ref)->size, (*ref)->free);
-    print_bst_node(&(*ref)->left, tabs + 2);
-    print_bst_node(&(*ref)->right, tabs + 2);
+    printf("%p (size: %u, free: %d)\n", ref, ref->size, ref->free);
+    print_bst_node(ref->left, tabs + 2);
+    print_bst_node(ref->right, tabs + 2);
 }
 
 static void initialize(){
     *(pool) = 1; // set the initialized byte to 1
-    *(meta_t**)(pool+1) = (meta_t *)(pool + sizeof(meta_t*) + sizeof(byte_t));
+    *(meta_t**)(pool+1) = (meta_t *)((pool) + sizeof(meta_t*) + sizeof(byte_t));
     meta_t * ref = *(meta_t **)(pool+1);
     ref -> left = ref -> right = ref -> prev = ref -> next = NULL;
     ref -> size = POOL_SIZE - sizeof(meta_t *) - sizeof(meta_t) - sizeof(byte_t);
@@ -54,6 +54,8 @@ static int split(meta_t ** ref, meta_t ** new, const unsigned int size){
     (*new) -> left = (*new) -> right = NULL;
     (*new) -> prev = (*ref);
     (*new) -> next = (*ref) -> next;
+
+    if((*ref) -> next) (*ref) -> next -> prev = (*new);
     
     (*ref) -> size = size;
     (*ref) -> next = (*new);
@@ -65,42 +67,49 @@ static int merge_with_next(meta_t *ref){
     if(!ref->next) return -1; // there's no next
     
     meta_t * next = ref -> next;
-    ref -> size = next -> size + sizeof(meta_t);
+    ref -> size += next -> size + sizeof(meta_t);
+    ref -> next = next -> next;
+    if(next -> next) next -> next -> prev = ref;
     return 0;
 }
 
-static meta_t ** get_fit_from_bst(meta_t ** ref, const unsigned int size){
-    while((*ref) && (*ref) -> size < size) ref = &((*ref)->right);
+static meta_t * get_fit_from_bst(meta_t * ref, const unsigned int size){
+    while(ref && ref -> size < size) ref = ref->right;
     return ref;
 }
 
-static int remove_from_bst(meta_t ** ref, meta_t ** target){
-    meta_t ** prev = ref;
-    while(*ref && ref != target){
-        prev = ref;
-        if((*target)->size < (*ref)->size) ref = &((*ref) -> left);
+static int remove_from_bst(meta_t ** ref, meta_t * target){
+    // printf("Remove from BST. rooted at %p. target %p\n", *ref, target);
+    while(*ref && *ref != target){
+        if(target->size < (*ref)->size) ref = &((*ref) -> left);
         else ref = &((*ref) -> right);
     }
-    if(ref != target) return -1; // could not find the container that holds the element to be removed
-    if((*prev)->left == *target){
-        // target is a left child
-        if(!(*target)->right){
-            *target = (*target) -> left;
-            return 0;
-        }
-        while((*ref) -> right) ref = &((*ref) -> right);
-        
-    } else {
-        // target is a right child
-        if(!(*target)->left){
-            *target = (*target) -> right;
-            return 0;
-        }
-        while((*ref) -> left) ref = &((*ref) -> left);
+    if(*ref != target) {
+        return -1;
     }
 
-    if(remove_from_bst(target, ref)){ // remove the right most child/ left most child from bst
-        *target = *ref;
+    if(!target->right && !target->left){ // no child nodes
+        *ref = NULL;
+        return 0;
+    }
+    if(target->right && !target->left){ // has only right child
+        *ref = target->right;
+        target -> left = target -> right = NULL;
+        return 0;
+    }
+    if(target->left && !target->right){ // has only left child
+        *ref = target->left;
+        target -> left = target -> right = NULL;
+        return 0;
+    }
+    // has both children
+    meta_t * tmp = target -> right;
+    while(tmp -> left) tmp = tmp->left;
+    if(!remove_from_bst(ref, tmp)){ // remove 
+        if(tmp != target -> right) tmp -> right = target -> right;
+        tmp -> left = target -> left;
+        *ref = tmp;
+        target -> left = target -> right = NULL;
         return 0;
     }
     return -1;
@@ -109,6 +118,7 @@ static int remove_from_bst(meta_t ** ref, meta_t ** target){
 static int add_to_bst(meta_t **ref, meta_t * target){
     if(*ref == NULL){
         *ref = target;
+        target -> left = target -> right = NULL;
         return 0;
     }
 
@@ -120,18 +130,17 @@ void * my_malloc(const unsigned int size){
     if(!*pool) initialize();
     if(!size) return NULL;
     
-    meta_t ** ref = (meta_t **)(pool+1);
-    ref = get_fit_from_bst(ref, size);
-    if(*ref == NULL) return NULL; // there are no items on the BST
+    meta_t * ref = get_fit_from_bst(*(meta_t **)(pool+1), size);
+    if(!ref) return NULL; // there are no items on the BST
 
-    meta_t * current = *ref;
+    meta_t * current = ref;
     meta_t * new = NULL;
 
     int res;
     res = remove_from_bst((meta_t **)(pool+1), ref);
-    printf("[my_alloc] remove_from_bst result = %d\n", res);
+    // printf("[my_alloc] remove_from_bst result = %d\n", res);
     res = split(&current, &new, size);
-    printf("[my_alloc] split result = %d, current %p, new %p\n", res, current, new);
+    // printf("[my_alloc] split result = %d, current %p, new %p\n", res, current, new);
 
     if(new) add_to_bst((meta_t **)(pool+1), new);
     current -> free = false;
@@ -143,21 +152,23 @@ int my_free(const void * data_ref){
     if(ref -> free) return -1;
     ref -> free = true;
 
-    int res = 0;
+    int res;
     if(ref -> next && ref -> next -> free) {
-        remove_from_bst((meta_t **)(pool+1), (ref -> next));
+        res = remove_from_bst((meta_t **)(pool+1), ref -> next);
+        // printf("[my_free] remove_from_bst next node result => %d\n", res);
         res = merge_with_next(ref);
-        printf("[my_free] merge_with_next next node result => %d\n", res);
+        // printf("[my_free] merge_with_next next node result => %d\n", res);
     }
     if(ref -> prev && ref -> prev -> free){
-        remove_from_bst((meta_t **)(pool+1), ref -> prev);
+        res = remove_from_bst((meta_t **)(pool+1), ref -> prev);
+        // printf("[my_free] remove_from_bst prev node result => %d\n", res);
         ref = ref -> prev;
         res = merge_with_next(ref);
-        printf("[my_free] merge_with_next prev node result => %d\n", res);
+        // printf("[my_free] merge_with_next prev node result => %d\n", res);
     }
 
     res = add_to_bst((meta_t **)(pool+1), ref);
-    printf("[my_free] add to bst result => %d\n", res);
+    // printf("[my_free] add to bst result => %d\n", res);
     return 0;
 }
 
@@ -174,12 +185,13 @@ void print_heap(const unsigned int tabs){
     while(tmp && (byte_t *)tmp < pool+POOL_SIZE){
         rep(t,tabs) printf("\t");
         printf("Meta: %p -> %9d, %d\t\t", tmp, tmp -> size, tmp -> free);
-        printf("Data: %p -> %9d\n", get_data_ref(tmp), *(int *)get_data_ref(tmp));
+        printf("Data: %p -> %9d \t\t", get_data_ref(tmp), *(int *)get_data_ref(tmp));
+        printf("(left: %p, right: %p, prev: %p, next: %p\n", tmp -> left, tmp -> right, tmp -> prev, tmp -> next);
 
         tmp = (meta_t *)((byte_t *)(tmp + 1) + tmp -> size);
     }
 
     rep(t, tabs) printf("\t");
     printf("BST ==>\n");
-    print_bst_node((meta_t**)(pool+1), tabs);
+    print_bst_node(*(meta_t**)(pool+1), tabs);
 }

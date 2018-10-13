@@ -6,23 +6,29 @@
 #define index(a) ((a+10)*(a+10))
 #define MX 1000
 
+typedef char bool;
+
+#define true 1
+#define false 0
+
 int N, M;
+
 int * points[MX];
-
 int sizes[MX];
-int allocated[MX];
-int freed[MX];
 
-int currentSize;
-int allocateCalls;
+bool allocated[MX];
+bool freed[MX];
+
+int allocates;
+int frees;
 
 void free_memory(){
     while(1){
-        int index = rand() % currentSize;
+        int index = rand() % N;
         if(freed[index] || !allocated[index]) continue;
-        printf("Freeing %d -> %d\n", index, my_free(points[index]));
+        printf("Freeing %d -> %d\n", index(index), my_free(points[index]));
         print_heap(2);
-        printf("Freed.\n");
+        printf("Freed %d.\n\n\n", index(index));
         freed[index] = 1;
         break;
     }
@@ -30,25 +36,24 @@ void free_memory(){
 
 void allocate_memory(){
     int size = rand() % M + 1;
-    sizes[currentSize] = size;
-    printf("Index: %d\n", index(allocateCalls));
+    sizes[allocates] = size;
+    printf("Index: %d\n", index(allocates));
     printf("Allocating array of integers of length %d (%lu bytes)\n", size, sizeof(int) * size);
-    points[currentSize] = (int *)my_malloc(sizeof(int) * size);
+    points[allocates] = (int *)my_malloc(sizeof(int) * size);
 
-    if(!points[currentSize]) {
+    if(!points[allocates]) {
         printf("Out of memory\n");
         print_heap(2);
         exit(0);
     }
 
-    rep(x,sizes[currentSize]) points[currentSize][x] = index(currentSize);
-    freed[currentSize] = 0;
+    rep(x,sizes[allocates]) points[allocates][x] = index(allocates);
+    freed[allocates] = 0;
 
-    printf("Allocated: %p -> %d\n", points[currentSize], points[currentSize][0]);
+    printf("Allocated: %p -> %d\n", points[allocates], points[allocates][0]);
     print_heap(2);
     printf("\n\n");
-    allocated[currentSize] = 1;
-    currentSize++; allocateCalls++;
+    allocated[allocates] = true;
 }
 
 int main(){
@@ -56,20 +61,21 @@ int main(){
     print_heap(2);
     printf("\n\n");
 
-    int availableToFree = 0;
     rep(i,2*N){
-        int allocate = rand() % 2;
-        if(!allocate && !availableToFree) allocate = 1;
+        bool allocate = rand() % 2;
+        if(allocate && allocates >= N) allocate = false;
+        if(!allocate && (allocates-frees) <= 0) allocate = true;
         
         if(allocate){
-            printf("Allocating\n");
-            availableToFree++;
             allocate_memory();
+            allocates++;
         } else {
-            printf("Freeing\n");
-            availableToFree --;
             free_memory();
+            frees++;
         }
     }
+
+    printf("\n");
+    printf("ALLOCATES: %d, FREES: %d\n", allocates, frees);
     return 0;
 }
