@@ -5,7 +5,7 @@
 
 #define rep(a,b) for(int a=0;a<b;a++)
 #define index(a) ((a+10)*(a+10))
-#define MX 1000
+#define MX 10000
 
 typedef char bool;
 
