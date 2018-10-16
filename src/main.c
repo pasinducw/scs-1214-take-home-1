@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "v3/my_lib.h"
 
 #define rep(a,b) for(int a=0;a<b;a++)
@@ -27,7 +28,7 @@ void free_memory(){
         int index = rand() % N;
         if(freed[index] || !allocated[index]) continue;
         printf("Freeing %d -> %d\n", index(index), my_free(points[index]));
-        print_heap(2);
+        // print_heap(2);
         printf("Freed %d.\n\n\n", index(index));
         freed[index] = 1;
         break;
@@ -51,12 +52,13 @@ void allocate_memory(){
     freed[allocates] = 0;
 
     printf("Allocated: %p -> %d\n", points[allocates], points[allocates][0]);
-    print_heap(2);
+    // print_heap(2);
     printf("\n\n");
     allocated[allocates] = true;
 }
 
 int main(){
+    srand(time(NULL));
     scanf("%d %d", &N, &M); // number of memory slots to be allocated, max test array size
     print_heap(2);
     printf("\n\n");
@@ -74,6 +76,8 @@ int main(){
             frees++;
         }
     }
+
+    print_heap(2);
 
     printf("\n");
     printf("ALLOCATES: %d, FREES: %d\n", allocates, frees);
