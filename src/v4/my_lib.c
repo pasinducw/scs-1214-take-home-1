@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "my_lib.h"
+#include "../my_lib.h"
 
 // first fit with a binary search tree
 

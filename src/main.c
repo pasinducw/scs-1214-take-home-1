@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "v3/my_lib.h"
+#include "my_lib.h"
 
 #define rep(a,b) for(int a=0;a<b;a++)
 #define index(a) ((a+10)*(a+10))
