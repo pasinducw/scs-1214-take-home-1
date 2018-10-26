@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "my_lib.h"
+#include "../my_lib.h"
 
 // Allocates memory using first fit algorithm 
 // (first fit algo = implmented in first semester for DSA take home assignment)
@@ -13,7 +13,7 @@ typedef struct memory_slot {
 } memory_slot;
 
 #define data_ref(pt) ((void *)((void *)pt + sizeof(memory_slot)))
-#define POOL_SIZE 2000
+#define POOL_SIZE 25000
 
 static unsigned char memory_pool[POOL_SIZE];
 static memory_slot * root;
@@ -38,6 +38,7 @@ static int split(memory_slot * slot, unsigned int size){
     tmp -> next = slot -> next;
     tmp -> prev = slot;
 
+    if(slot -> next) slot -> next -> prev = tmp;
     slot -> next = tmp;
     slot -> size = size;
     return 0;
@@ -68,7 +69,7 @@ void * my_malloc(unsigned int size) {
 }
 
 // returns 0 upon successful call
-int my_free(void * data_location){
+int my_free(const void * data_location){
     if(!root) return -1; // invalid call
 
     ptr = root;
@@ -88,7 +89,8 @@ int my_free(void * data_location){
 }
 
 // utility function to see the current memory condition
-void print(){
+void print_heap(const unsigned int tabs){
+    if(!root) initialize(); // initialized structure on first call
     printf("=====My Heap=====\n");
     ptr = root;
     while(ptr != NULL){
